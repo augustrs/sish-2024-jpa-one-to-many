@@ -47,6 +47,10 @@ public class Region {
     private String navn;
     private String href;
 
+    public Region() {
+
+    }
+
     @OneToMany(mappedBy = "region")
     @JsonBackReference
     private Set<Kommune> kommuner = new HashSet<>();

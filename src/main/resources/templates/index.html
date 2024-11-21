@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regions and Kommuner</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+<div id="app" class="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md">
+    <h1 class="text-2xl font-bold text-gray-700 mb-4">Regions and Kommuner</h1>
+
+    <section class="mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">Regionskoder</h2>
+        <ul class="list-disc list-inside bg-gray-50 p-4 rounded-md border border-gray-200">
+            <li v-for="regionskode in regionskoder" class="text-gray-600">{{ regionskode }}</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Regioner</h2>
+        <ul class="space-y-4">
+            <li v-for="region in regioner" class="bg-gray-50 p-4 rounded-md border border-gray-200 shadow-sm">
+                <region :region="region"></region>
+            </li>
+        </ul>
+    </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.21.1/babel.min.js"></script>
+
+<script type="text/babel">
+    var app = new Vue({
+        el: '#app',
+        data: {
+            regionskoder: ["1081", "1082", "1083", "1084", "1085"],
+            regioner: [],
+        },
+        created() {
+            axios
+                .get("/regioner")
+                .then(response => {
+                    this.regioner = response.data;
+                })
+                .catch(error => {
+                    console.log(error);
+                });
+        },
+    });
+
+    Vue.component('region', {
+        props: ['region'],
+        data() {
+            return {
+                kommuner: [],
+                isOpen: false, // Tracks if the tab is open
+            };
+        },
+        template: `
+          <div class="region">
+            <h3 class="text-lg font-medium text-gray-700 flex items-center justify-between">
+              {{ region.navn }}
+              <button
+                  class="text-white bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded-md text-sm"
+                  @click="toggleKommuner">
+                {{ isOpen ? "Close" : "View" }}
+              </button>
+            </h3>
+            <div v-if="isOpen" class="mt-2">
+              <ul class="list-disc list-inside bg-white p-4 rounded-md border border-gray-200">
+                <li v-for="kommune in kommuner" class="mb-2">
+                  <kommune
+                      :kommune="kommune"
+                      @kommune-deleted="handleKommuneDeleted">
+                  </kommune>
+                </li>
+              </ul>
+            </div>
+          </div>
+        `,
+        methods: {
+            toggleKommuner() {
+                this.isOpen = !this.isOpen;
+                if (this.isOpen) {
+                    this.fetchKommuner(this.region.kode);
+                }
+            },
+            fetchKommuner(regionskode) {
+                axios
+                    .get("/kommuner", { params: { regionskode: regionskode } })
+                    .then(response => {
+                        this.kommuner = response.data;
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    });
+            },
+            handleKommuneDeleted(id) {
+                this.kommuner = this.kommuner.filter(kommune => kommune.id !== id);
+            }
+        }
+    });
+
+    Vue.component('kommune', {
+        props: ['kommune'],
+        template: `
+          <div class="kommune flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md border border-gray-200 shadow-sm">
+            <span class="text-gray-700">{{ kommune.navn }}</span>
+            <button
+                class="text-red-500 bg-white hover:bg-gray-100 px-2 py-1 rounded-md text-sm border border-red-500"
+                @click="removeKommune(kommune.id)">🗑️</button>
+          </div>
+        `,
+        methods: {
+            removeKommune(id) {
+                axios
+                    .post("/kommuner/remove", null, { params: { id: id } })
+                    .then(response => {
+                        this.$emit('kommune-deleted', id);
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    });
+            }
+        }
+    });
+</script>
+</body>
+</html>

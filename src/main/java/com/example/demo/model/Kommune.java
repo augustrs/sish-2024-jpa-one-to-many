@@ -14,6 +14,8 @@ public class Kommune {
     private String navn;
     private String href;
 
+    public Kommune(){}
+
     public Kommune(String kode, String navn, String href, Region region) {
         this.kode = kode;
         this.navn = navn;
